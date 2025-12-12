@@ -11,6 +11,7 @@ from app.enrollments_attendance import models, schemas
 
 from datetime import date
 from app.profiles.models import LearningProfile, TrainingHistoryEntry
+from app.gamification.badges_service import award_badges_if_eligible
 
 router = APIRouter(prefix="/enrollments", tags=["enrollments"])
 
@@ -105,12 +106,10 @@ def mark_enrollment_completed(
             detail="Training not found",
         )
 
-    # Mark enrollment as completed
     enrollment.status = models.EnrollmentStatus.COMPLETED
     db.commit()
     db.refresh(enrollment)
 
-    # Update training history
     today = date.today()
     history_entry = TrainingHistoryEntry(
         user_id=current_user.id,
@@ -121,7 +120,6 @@ def mark_enrollment_completed(
     )
     db.add(history_entry)
 
-    # Update learning profile and yearly hours
     profile = (
         db.query(LearningProfile)
         .filter(LearningProfile.user_id == current_user.id)
@@ -132,11 +130,15 @@ def mark_enrollment_completed(
         db.add(profile)
         db.flush()
 
-    if today.year == today.year:  # current year
-        profile.total_learning_hours_current_year += training.duration_hours
+    profile.total_learning_hours_current_year += training.duration_hours
 
     db.commit()
+
+    # Award badges & certificates if thresholds reached
+    award_badges_if_eligible(db, current_user.id, profile.total_learning_hours_current_year)
+
     return enrollment
+
 
 
 @router.post(
