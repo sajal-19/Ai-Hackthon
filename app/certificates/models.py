@@ -14,10 +14,10 @@ class Certificate(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     badge_id = Column(Integer, ForeignKey("badges.id"), nullable=False)
 
-    template_type = Column(String, nullable=False)  # e.g., SILVER/GOLD/PLATINUM
+    template_type = Column(String, nullable=False)
     issued_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
-    metadata = Column(Text, nullable=True)  # placeholder for template data, link, etc.
+    meta = Column(Text, nullable=True)  # renamed from 'metadata'
 
     user = relationship("User")
     badge = relationship("Badge")

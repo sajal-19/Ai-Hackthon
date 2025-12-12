@@ -46,7 +46,7 @@ def award_badges_if_eligible(db: Session, user_id: int, total_hours_current_year
                 user_id=user_id,
                 badge_id=badge.id,
                 template_type=badge.name,  # SILVER/GOLD/PLATINUM
-                metadata=f"Certificate for {badge.name} badge",
+                meta=f"Certificate for {badge.name} badge",
             )
             db.add(cert)
 

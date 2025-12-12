@@ -9,7 +9,7 @@ class CertificateRead(BaseModel):
     badge_id: int
     template_type: str
     issued_at: datetime
-    metadata: str | None = None
+    meta: str | None = None
 
     class Config:
         from_attributes = True

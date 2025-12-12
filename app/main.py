@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.health import router as health_router
 from app.auth.router import router as auth_router
@@ -13,6 +14,20 @@ from app.certificates.router import router as certificates_router
 app = FastAPI(
     title="L&D Portal API",
     version="0.1.0",
+)
+
+origins = [
+    "http://localhost:3000",  # React dev
+    "http://localhost:5173",  # Vite dev
+    # add your Render frontend URL later
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(health_router)
