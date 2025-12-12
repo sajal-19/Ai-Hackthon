@@ -6,6 +6,7 @@ from app.users_org.router import router as users_router
 from app.trainings.router import router as trainings_router
 from app.enrollments_attendance.router import router as enrollments_router
 from app.profiles.router import router as profiles_router
+from app.reporting.router import router as reporting_router
 
 app = FastAPI(
     title="L&D Portal API",
@@ -18,3 +19,4 @@ app.include_router(users_router)
 app.include_router(trainings_router)
 app.include_router(enrollments_router)
 app.include_router(profiles_router)
+app.include_router(reporting_router)

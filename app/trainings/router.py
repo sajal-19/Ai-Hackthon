@@ -8,6 +8,8 @@ from app.auth.deps import get_current_user, require_roles, get_db
 from app.users_org.models import User, UserRole
 from app.trainings import models, schemas
 
+from app.enrollments_attendance.models import Enrollment, EnrollmentStatus
+
 router = APIRouter(prefix="/trainings", tags=["trainings"])
 
 
@@ -121,3 +123,40 @@ def list_training_assignments(
     current_user: User = Depends(get_current_user),
 ):
     return db.query(models.TrainingAssignment).all()
+
+@router.get(
+    "/mandatory/status",
+    dependencies=[Depends(get_current_user)],
+)
+def get_my_mandatory_training_status(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Trainings marked mandatory
+    mandatory_trainings = db.query(models.Training).filter(models.Training.is_mandatory == True).all()
+
+    # Enrollments for current user
+    enrollments = (
+        db.query(Enrollment)
+        .filter(Enrollment.user_id == current_user.id)
+        .all()
+    )
+    enrollment_by_training = {e.training_id: e for e in enrollments}
+
+    result = []
+    for t in mandatory_trainings:
+        enrollment = enrollment_by_training.get(t.id)
+        status = "NOT_ENROLLED"
+        if enrollment:
+            if enrollment.status == EnrollmentStatus.COMPLETED:
+                status = "COMPLETED"
+            else:
+                status = "IN_PROGRESS"
+        result.append(
+            {
+                "training_id": t.id,
+                "title": t.title,
+                "status": status,
+            }
+        )
+    return result

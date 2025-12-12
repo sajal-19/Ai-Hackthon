@@ -112,3 +112,51 @@ def add_my_certification(
     db.commit()
     db.refresh(cert)
     return cert
+
+@router.get(
+    "/users/{user_id}",
+    response_model=schemas.LearningProfileRead,
+    dependencies=[Depends(require_roles(UserRole.MANAGER, UserRole.ADMIN, UserRole.SUPER_ADMIN))],
+)
+def get_user_profile_for_manager(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Managers can only see their reportees; Admin/Super Admin can see anyone
+    if current_user.role == UserRole.MANAGER:
+        from app.users_org.models import ManagerRelationship
+        rel = (
+            db.query(ManagerRelationship)
+            .filter(
+                ManagerRelationship.manager_id == current_user.id,
+                ManagerRelationship.reportee_id == user_id,
+            )
+            .first()
+        )
+        if not rel:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not allowed to view this user's profile",
+            )
+
+    profile = _get_or_create_profile(db, user_id)
+
+    certs = (
+        db.query(models.Certification)
+        .filter(models.Certification.user_id == user_id)
+        .all()
+    )
+    history = (
+        db.query(models.TrainingHistoryEntry)
+        .filter(models.TrainingHistoryEntry.user_id == user_id)
+        .all()
+    )
+
+    return schemas.LearningProfileRead(
+        user_id=user_id,
+        tech_stack=profile.tech_stack,
+        total_learning_hours_current_year=profile.total_learning_hours_current_year,
+        certifications=certs,
+        training_history=history,
+    )

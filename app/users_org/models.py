@@ -33,3 +33,22 @@ class Department(Base):
     name = Column(String, unique=True, nullable=False)
 
     users = relationship("User", back_populates="department")
+
+class ManagerRelationship(Base):
+    __tablename__ = "manager_relationships"
+
+    id = Column(Integer, primary_key=True, index=True)
+    manager_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    reportee_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    manager = relationship("User", foreign_keys=[manager_id], backref="reportees_rel")
+    reportee = relationship("User", foreign_keys=[reportee_id], backref="manager_rel")
+
+class OrgUnit(Base):
+    __tablename__ = "org_units"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    parent_org_unit_id = Column(Integer, ForeignKey("org_units.id"), nullable=True)
+
+    parent = relationship("OrgUnit", remote_side=[id], backref="children")
