@@ -9,6 +9,9 @@ from app.users_org.models import User, UserRole
 from app.trainings.models import Training
 from app.enrollments_attendance import models, schemas
 
+from datetime import date
+from app.profiles.models import LearningProfile, TrainingHistoryEntry
+
 router = APIRouter(prefix="/enrollments", tags=["enrollments"])
 
 
@@ -95,9 +98,44 @@ def mark_enrollment_completed(
             detail="Enrollment not found",
         )
 
+    training = db.query(Training).filter(Training.id == enrollment.training_id).first()
+    if not training:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Training not found",
+        )
+
+    # Mark enrollment as completed
     enrollment.status = models.EnrollmentStatus.COMPLETED
     db.commit()
     db.refresh(enrollment)
+
+    # Update training history
+    today = date.today()
+    history_entry = TrainingHistoryEntry(
+        user_id=current_user.id,
+        training_id=training.id,
+        status="COMPLETED",
+        completion_date=today,
+        hours_credited=training.duration_hours,
+    )
+    db.add(history_entry)
+
+    # Update learning profile and yearly hours
+    profile = (
+        db.query(LearningProfile)
+        .filter(LearningProfile.user_id == current_user.id)
+        .first()
+    )
+    if not profile:
+        profile = LearningProfile(user_id=current_user.id)
+        db.add(profile)
+        db.flush()
+
+    if today.year == today.year:  # current year
+        profile.total_learning_hours_current_year += training.duration_hours
+
+    db.commit()
     return enrollment
 
 
